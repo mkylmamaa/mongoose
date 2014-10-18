@@ -2321,7 +2321,7 @@ static char *mg_fgets(char *buf, size_t size, struct file *filep, char **p) {
   size_t len;
 
   if (filep->membuf != NULL && *p != NULL) {
-    eof = memchr(*p, '\n', &filep->membuf[filep->size] - *p);
+    eof = (char*)memchr(*p, '\n', &filep->membuf[filep->size] - *p);
     len = (size_t) (eof - *p) > size - 1 ? size - 1 : (size_t) (eof - *p);
     memcpy(buf, *p, len);
     buf[len] = '\0';
@@ -4345,7 +4345,7 @@ static int set_ports_option(struct mg_context *ctx) {
     } else {
       set_close_on_exec(so.sock);
       // TODO: handle realloc failure
-      ctx->listening_sockets = realloc(ctx->listening_sockets,
+      ctx->listening_sockets = (struct socket*)realloc(ctx->listening_sockets,
                                        (ctx->num_listening_sockets + 1) *
                                        sizeof(ctx->listening_sockets[0]));
       ctx->listening_sockets[ctx->num_listening_sockets] = so;
@@ -4869,7 +4869,7 @@ static int consume_socket(struct mg_context *ctx, struct socket *sp) {
 }
 
 static void *worker_thread(void *thread_func_param) {
-  struct mg_context *ctx = thread_func_param;
+  struct mg_context *ctx = (mg_context*) thread_func_param;
   struct mg_connection *conn;
 
   conn = (struct mg_connection *) calloc(1, sizeof(*conn) + MAX_REQUEST_SIZE);
@@ -4984,7 +4984,7 @@ static void accept_new_connection(const struct socket *listener,
 }
 
 static void *master_thread(void *thread_func_param) {
-  struct mg_context *ctx = thread_func_param;
+  struct mg_context *ctx = (mg_context*)thread_func_param;
   struct pollfd *pfd;
   int i;
 
@@ -4999,7 +4999,7 @@ static void *master_thread(void *thread_func_param) {
   pthread_setschedparam(pthread_self(), SCHED_RR, &sched_param);
 #endif
 
-  pfd = calloc(ctx->num_listening_sockets, sizeof(pfd[0]));
+  pfd = (pollfd*)calloc(ctx->num_listening_sockets, sizeof(pfd[0]));
   while (ctx->stop_flag == 0) {
     for (i = 0; i < ctx->num_listening_sockets; i++) {
       pfd[i].fd = ctx->listening_sockets[i].sock;
